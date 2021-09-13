@@ -1,0 +1,9 @@
+name: Psychics
+main: io.github.monull.psychics.plugin.PsychicPlugin
+api-version: '1.17'
+version: 1.0.0
+author: Monull
+libraries:
+  - io.github.monun:tap:4.1.9
+  - io.github.monun:invfx:3.0.1
+  - io.github.monun:kommand:2.6.6
