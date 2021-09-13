@@ -19,6 +19,9 @@ class PsychicManager(
     lateinit var abilityContainersById: Map<String, AbilityContainer>
         private set
 
+    lateinit var psychic: Psychic
+        private set
+
     internal fun reload() {
         abilityLoader.clear()
 
@@ -84,6 +87,14 @@ class PsychicManager(
         }
 
         abilityContainersById = ImmutableSortedMap.copyOf(map)
+    }
+
+    internal fun loadPsychic() {
+        val list = arrayListOf<Ability<*>>()
+        for ((id, abilityContainer) in abilityContainersById) {
+            list += abilityContainer.abilityClass.getConstructor().newInstance()
+        }
+        psychic = Psychic(list)
     }
 
     private fun loadAbilityDescriptions(): List<Pair<File, AbilityDescription>> {
