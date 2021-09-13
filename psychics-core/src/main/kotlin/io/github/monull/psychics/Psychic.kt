@@ -1,6 +1,9 @@
 package io.github.monull.psychics
 
 import io.github.monull.psychics.plugin.PsychicPlugin
+import io.github.monun.tap.fake.FakeEntity
+import org.bukkit.Location
+import org.bukkit.entity.Entity
 
 
 class Psychic(val abilities: List<Ability<*>>) {
@@ -8,6 +11,9 @@ class Psychic(val abilities: List<Ability<*>>) {
         private set
 
     lateinit var manager: PsychicManager
+        private set
+
+    lateinit var esper: Esper
         private set
 
     /**
@@ -39,6 +45,11 @@ class Psychic(val abilities: List<Ability<*>>) {
             ability.initPsychic(this)
             ability.runCatching { onInitialize() }.onFailure { it.printStackTrace() }
         }
+        isEnabled = true
+    }
+
+    internal fun attach(esper: Esper) {
+        this.esper = esper
     }
 
     private fun onEnable() {
@@ -73,5 +84,12 @@ class Psychic(val abilities: List<Ability<*>>) {
         require(isEnabled) { "Disabled Psychic@${System.identityHashCode(this).toString(16)}" }
     }
 
+    fun spawnFakeEntity(location: Location, entityClass: Class<out Entity>): FakeEntity {
+        checkState()
+        checkEnabled()
 
+        val fakeEntity = manager.plugin.fakeEntityServer.spawnEntity(location, entityClass)
+
+        return fakeEntity
+    }
 }

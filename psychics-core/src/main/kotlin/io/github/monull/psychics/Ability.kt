@@ -8,6 +8,9 @@ open class Ability<T : AbilityConcept> {
     lateinit var concept: T
         private set
 
+    val esper
+        get() = psychic.esper
+
     lateinit var psychic: Psychic
         private set
 

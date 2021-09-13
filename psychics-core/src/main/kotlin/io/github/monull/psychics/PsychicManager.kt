@@ -2,7 +2,10 @@ package io.github.monull.psychics
 
 import com.google.common.collect.ImmutableSortedMap
 import io.github.monull.psychics.loader.AbilityLoader
+import io.github.monull.psychics.plugin.PsychicPlugin
+import org.bukkit.Bukkit
 import org.bukkit.configuration.file.YamlConfiguration
+import org.bukkit.entity.Player
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.*
@@ -11,6 +14,7 @@ import java.util.logging.Logger
 import kotlin.math.min
 
 class PsychicManager(
+    val plugin: PsychicPlugin,
     val logger: Logger,
     val abilitiesFolder: File
 ) {
@@ -22,10 +26,29 @@ class PsychicManager(
     lateinit var psychic: Psychic
         private set
 
+    private val espersByPlayer = IdentityHashMap<Player, Esper>(Bukkit.getMaxPlayers())
+
     internal fun reload() {
         abilityLoader.clear()
 
 
+    }
+
+    internal fun addPlayer(player: Player) {
+        espersByPlayer.computeIfAbsent(player) {
+            val esper = Esper(this, it)
+            esper
+        }
+    }
+
+    internal fun removePlayer(player: Player) {
+        espersByPlayer.remove(player)?.let { esper ->
+            esper.clear()
+        }
+    }
+
+    fun getEsper(player: Player): Esper? {
+        return espersByPlayer[player]
     }
 
     private fun getAbilityFiles(): Array<File> {
@@ -70,10 +93,7 @@ class PsychicManager(
 
         for ((file, description) in descriptions) {
             abilityLoader.runCatching {
-                map[description.artifactId] = load(file, description).apply {
-                    abilityClass.getConstructor().newInstance().onEnable()
-                    conceptClass.getConstructor().newInstance().onInitialize()
-                }
+                map[description.artifactId] = load(file, description)
             }.onFailure { exception: Throwable ->
                 exception.printStackTrace()
                 logger.warning("Failed to load Ability ${file.name}")
