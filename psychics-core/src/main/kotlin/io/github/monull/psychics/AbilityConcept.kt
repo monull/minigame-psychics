@@ -3,6 +3,8 @@ package io.github.monull.psychics
 import io.github.monun.tap.config.*
 import net.kyori.adventure.text.Component
 import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.configuration.file.YamlConfiguration
+import java.io.File
 
 @Name("common")
 open class AbilityConcept {
@@ -10,7 +12,6 @@ open class AbilityConcept {
         private set
 
     lateinit var container: AbilityContainer
-        private set
 
     @Config
     lateinit var displayName: String
@@ -47,8 +48,16 @@ open class AbilityConcept {
         val ret = ConfigSupport.compute(this, config, true)
     }
 
-    internal fun createAbilityInstance(): Ability<*> {
-        return container.abilityClass.getConstructor().newInstance()
+    internal fun createAbilityInstance(file: File): Ability<*> {
+        return container.abilityClass.getConstructor().newInstance().apply {
+            initConcept(this@AbilityConcept)
+            val yaml = YamlConfiguration.loadConfiguration(file)
+            val abilityConfig = yaml.createSection("ABILITIES")
+            for ((abilityName, value) in abilityConfig.getValues(false)) {
+                if (value !is ConfigurationSection) continue
+                initialize(abilityName, container, value)
+            }
+        }
     }
 
     open fun onInitialize() {}

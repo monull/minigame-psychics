@@ -1,6 +1,7 @@
 package io.github.monull.psychics
 
 import org.bukkit.entity.Player
+import java.io.File
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -27,8 +28,11 @@ class Esper(
         attributeUniqueId = UUID(uniqueId.leastSignificantBits.inv(), uniqueId.mostSignificantBits.inv())
 
         val list = arrayListOf<Ability<*>>()
-        manager.abilityContainersById.forEach { (id, abilityContainer) ->
-            list += abilityContainer.abilityClass.getConstructor().newInstance()
+        manager.abilityContainersById.forEach { (_, abilityContainer) ->
+            val concept = abilityContainer.conceptClass.getConstructor().newInstance()
+            concept.container = abilityContainer
+            val ability = concept.createAbilityInstance(File(manager.plugin.dataFolder, "config.yml"))
+            list += ability
         }
         psychic = Psychic(list)
         psychic!!.attach(this)

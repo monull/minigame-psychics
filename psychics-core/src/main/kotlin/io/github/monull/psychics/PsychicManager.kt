@@ -109,14 +109,6 @@ class PsychicManager(
         abilityContainersById = ImmutableSortedMap.copyOf(map)
     }
 
-    internal fun loadPsychic() {
-        val list = arrayListOf<Ability<*>>()
-        for ((id, abilityContainer) in abilityContainersById) {
-            list += abilityContainer.abilityClass.getConstructor().newInstance()
-        }
-        psychic = Psychic(list)
-    }
-
     private fun loadAbilityDescriptions(): List<Pair<File, AbilityDescription>> {
         val abilityFiles = getAbilityFiles()
 
