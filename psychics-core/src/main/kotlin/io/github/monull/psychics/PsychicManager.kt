@@ -49,7 +49,9 @@ class PsychicManager(
         espersByPlayer.computeIfAbsent(player) {
             val esper = Esper(this, it)
             esper.load()
-            esper.attachPsychic(psychicConcept)
+            if (esper.psychic == null) {
+                esper.attachPsychic(psychicConcept)
+            }
             esper
         }
     }
@@ -177,7 +179,8 @@ class PsychicManager(
 
                 val abilityContainer = containers.first()
                 val abilityConcept = abilityContainer.conceptClass.getConstructor().newInstance()
-                changed = changed or abilityConcept.initialize(abilityName, abilityContainer, psychicConcept, config)
+                changed = changed or abilityConcept.initialize(abilityName, abilityContainer, psychicConcept, value)
+                logger.info(abilityConcept.name)
                 abilityConcepts += abilityConcept
             }
 

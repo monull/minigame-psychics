@@ -51,7 +51,7 @@ class PsychicConcept internal constructor() {
 
     internal fun initializeModules(manager: PsychicManager, abilityConcepts: List<AbilityConcept>) {
         this.manager = manager
-        this.abilityConcepts
+        this.abilityConcepts = abilityConcepts
 
         for (abilityConcept in abilityConcepts) {
             abilityConcept.runCatching {

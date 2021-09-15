@@ -8,7 +8,16 @@ import io.github.monun.tap.fake.FakeProjectileManager
 import io.github.monun.tap.ref.weaky
 import io.github.monun.tap.ref.getValue
 import io.github.monun.tap.task.Ticker
+import io.github.monun.tap.task.TickerTask
+import net.kyori.adventure.text.Component
+import org.bukkit.Bukkit
+import org.bukkit.Location
+import org.bukkit.block.data.BlockData
 import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.entity.ArmorStand
+import org.bukkit.entity.Entity
+import org.bukkit.event.Listener
+import org.bukkit.inventory.ItemStack
 import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.math.max
@@ -89,6 +98,7 @@ class Psychic internal constructor(
         for (ability in abilities) {
             ability.runCatching { onAttach() }.onFailure { it.printStackTrace() }
         }
+        isEnabled = true
     }
 
     private fun detach() {
@@ -102,12 +112,181 @@ class Psychic internal constructor(
     }
 
     private fun onEnable() {
-
+        for (ability in abilities) {
+            ability.runCatching { onEnable() }.onFailure(Throwable::printStackTrace)
+        }
     }
 
     private fun onDisable() {
-
+        ticker.cancelAll()
+        projectiles.clear()
+        listeners.run {
+            for (registeredEntityListener in this) {
+                registeredEntityListener.unregister()
+            }
+            clear()
+        }
+        fakeEntities.run {
+            for (fakeEntity in this) {
+                fakeEntity.remove()
+            }
+            clear()
+        }
+        for (ability in abilities) {
+            ability.runCatching { onDisable() }.onFailure(Throwable::printStackTrace)
+        }
     }
+
+    /**
+     * 태스크를 delay만큼 후에 실행합니다.
+     *
+     * 능력이 비활성화 될 때 취소됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun runTask(runnable: Runnable, delay: Long): TickerTask {
+        checkState()
+        checkEnabled()
+
+        return ticker.runTask(runnable, delay)
+    }
+
+    /**
+     * 태스크를 delay만큼 후 period마다 주기적으로 실행합니다.
+     *
+     * 능력이 비활성화 될 때 취소됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun runTaskTimer(runnable: Runnable, delay: Long, period: Long): TickerTask {
+        checkState()
+        checkEnabled()
+
+        return ticker.runTaskTimer(runnable, delay, period)
+    }
+
+    /**
+     * 이벤트를 등록합니다.
+     *
+     * 범위는 해당 [Psychic]이 부여된 [org.bukkit.entity.Player]객체로 국한됩니다.
+     *
+     * 능력이 비활성화 될 때 해제됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun registerEvents(listener: Listener) {
+        checkState()
+        checkEnabled()
+
+        listeners.add(plugin.entityEventManager.registerEvents(esper.player, listener))
+    }
+
+    /**
+     * 발사체를 발사합니다.
+     *
+     * 능력이 비활성화 될 때 제거됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun launchProjectile(location: Location, projectile: PsychicProjectile) {
+        checkState()
+        checkEnabled()
+
+        projectile.psychic = this
+        projectiles.launch(location, projectile)
+    }
+
+    /**
+     * 가상 [Entity]를 생성합니다.
+     *
+     * 능력이 비활성화 될 때 제거됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun spawnFakeEntity(location: Location, entityClass: Class<out Entity>): FakeEntity {
+        checkState()
+        checkEnabled()
+
+        val fakeEntity = manager.plugin.fakeEntityServer.spawnEntity(location, entityClass)
+        fakeEntities.add(fakeEntity)
+
+        return fakeEntity
+    }
+
+    /**
+     * 가상 [org.bukkit.entity.FallingBlock]을 생성합니다.
+     *
+     * 능력이 비활성화 될 때 제거됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun spawnFakeFallingBlock(location: Location, blockData: BlockData): FakeEntity {
+        checkState()
+        checkEnabled()
+
+        val fakeEntity = manager.plugin.fakeEntityServer.spawnFallingBlock(location, blockData)
+        fakeEntities.add(fakeEntity)
+
+        return fakeEntity
+    }
+
+    /**
+     * 가상 [org.bukkit.entity.Item]을 생성합니다.
+     *
+     * 능력이 비활성화 될 때 제거됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun spawnItem(location: Location, itemStack: ItemStack): FakeEntity {
+        checkState()
+        checkEnabled()
+
+        val fakeEntity = manager.plugin.fakeEntityServer.spawnItem(location, itemStack)
+        fakeEntities.add(fakeEntity)
+
+        return fakeEntity
+    }
+
+    /**
+     * Marker로 설정된 [org.bukkit.entity.ArmorStand]를 생성합니다.
+     *
+     * 능력이 비활성화 될 때 제거됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun spawnMarker(location: Location): FakeEntity {
+        return spawnFakeEntity(location, ArmorStand::class.java).apply {
+            updateMetadata<ArmorStand> {
+                isMarker = true
+                isInvisible = true
+            }
+        }
+    }
+
+    /**
+     * Marker로 설정된 [org.bukkit.entity.ArmorStand]를 생성 후 인수로 받은 [FakeEntity]를 승객으로 설정합니다.
+     *
+     * 능력이 비활성화 될 때 제거됩니다.
+     *
+     * @exception IllegalArgumentException 유효하지 않은 객체일때 발생
+     * @exception IllegalArgumentException 활성화되지 않은 객체일때 발생
+     */
+    fun marker(passenger: FakeEntity): FakeEntity {
+        return spawnMarker(passenger.location).apply { addPassenger(passenger) }
+    }
+
+    fun broadcast(string: String) {
+        Bukkit.broadcast(Component.text(string))
+    }
+
     /**
      * 능력 유효 여부를 체크합니다.
      *

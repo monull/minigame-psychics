@@ -35,6 +35,7 @@ class Esper(val manager: PsychicManager, player: Player) {
         val psychic = concept.createInstance()
         this.psychic = psychic
         psychic.attach(this@Esper)
+        psychic.isEnabled = true
         return psychic
     }
 
