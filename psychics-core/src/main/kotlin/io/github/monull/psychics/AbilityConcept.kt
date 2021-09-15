@@ -1,38 +1,34 @@
 package io.github.monull.psychics
 
-import io.github.monun.tap.config.*
+import io.github.monun.tap.config.Config
+import io.github.monun.tap.config.ConfigSupport
+import io.github.monun.tap.config.Name
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import org.bukkit.configuration.ConfigurationSection
-import org.bukkit.configuration.file.YamlConfiguration
-import java.io.File
+import java.util.logging.Logger
 
 @Name("common")
 open class AbilityConcept {
+
     lateinit var name: String
         private set
 
     lateinit var container: AbilityContainer
+        private set
 
-    @Config
+    lateinit var psychicConcept: PsychicConcept
+        private set
+
+    lateinit var logger: Logger
+        private set
+
+    /**
+     * 표시 이름 (I18N)
+     */
+    @Config(required = false)
     lateinit var displayName: String
         protected set
-
-    @Config(required = false)
-    @RangeInt(min = 0)
-    var cooldownTime = 0L
-        protected set
-
-    @Config(required = false)
-    var durationTime = 0L
-        protected set
-
-    @Config(required = false)
-    @RangeDouble(min = 0.0)
-    var range = 0.0
-        protected set
-
-    @Config(required = false)
-    var knockback = 0.0
 
     @Config("description")
     private var descriptionRaw: List<String> = ArrayList(0)
@@ -42,23 +38,32 @@ open class AbilityConcept {
     internal fun initialize(
         name: String,
         container: AbilityContainer,
+        psychicConcept: PsychicConcept,
         config: ConfigurationSection
-    ) {
+    ): Boolean {
         this.name = name
+        this.container = container
+        this.psychicConcept = psychicConcept
+        if (!this::displayName.isInitialized)
+            this.displayName = container.description.name
+
+        val gson = GsonComponentSerializer.gson()
+        descriptionRaw = description.map { gson.serialize(it) }
+
         val ret = ConfigSupport.compute(this, config, true)
+        this.description = descriptionRaw.map { gson.deserialize(it) }
+
+        return ret
     }
 
-    internal fun createAbilityInstance(file: File): Ability<*> {
+    internal fun createAbilityInstance(): Ability<*> {
         return container.abilityClass.getConstructor().newInstance().apply {
             initConcept(this@AbilityConcept)
-            val yaml = YamlConfiguration.loadConfiguration(file)
-            val abilityConfig = yaml.createSection("ABILITIES")
-            for ((abilityName, value) in abilityConfig.getValues(false)) {
-                if (value !is ConfigurationSection) continue
-                initialize(abilityName, container, value)
-            }
         }
     }
 
+    /**
+     * 필드 변수 적용 후 호출
+     */
     open fun onInitialize() {}
 }

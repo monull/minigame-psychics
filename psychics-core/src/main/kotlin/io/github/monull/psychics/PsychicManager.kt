@@ -2,8 +2,9 @@ package io.github.monull.psychics
 
 import com.google.common.collect.ImmutableSortedMap
 import io.github.monull.psychics.loader.AbilityLoader
-import io.github.monull.psychics.plugin.PsychicPlugin
+import io.github.monull.psychics.plugin.PsychicsPlugin
 import org.bukkit.Bukkit
+import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
 import java.io.File
@@ -14,41 +15,67 @@ import java.util.logging.Logger
 import kotlin.math.min
 
 class PsychicManager(
-    val plugin: PsychicPlugin,
+    val plugin: PsychicsPlugin,
     val logger: Logger,
-    val abilitiesFolder: File
+    val abilitiesFolder: File,
+    val esperFolder: File
 ) {
     private val abilityLoader = AbilityLoader()
 
     lateinit var abilityContainersById: Map<String, AbilityContainer>
         private set
 
-    lateinit var psychic: Psychic
-        private set
+    lateinit var psychicConcept: PsychicConcept
 
     private val espersByPlayer = IdentityHashMap<Player, Esper>(Bukkit.getMaxPlayers())
 
+    val espers: Collection<Esper> = Collections.unmodifiableCollection(espersByPlayer.values)
+
     internal fun reload() {
+        espers.forEach { esper ->
+            esper.save()
+            esper.removePsychic()
+        }
         abilityLoader.clear()
 
+        updateAbilities()
+        loadAbilities()
+        loadPsychic()
 
+        espers.forEach { it.load() }
     }
 
     internal fun addPlayer(player: Player) {
         espersByPlayer.computeIfAbsent(player) {
             val esper = Esper(this, it)
+            esper.load()
+            esper.attachPsychic(psychicConcept)
             esper
         }
     }
 
     internal fun removePlayer(player: Player) {
         espersByPlayer.remove(player)?.let { esper ->
+            esper.save()
             esper.clear()
         }
     }
 
+    internal fun unload() {
+        for (esper in espers) {
+            esper.save()
+            esper.clear()
+        }
+        espersByPlayer.clear()
+        abilityLoader.clear()
+    }
+
     fun getEsper(player: Player): Esper? {
         return espersByPlayer[player]
+    }
+
+    fun getPsychicConcept(name: String): PsychicConcept {
+        return psychicConcept
     }
 
     private fun getAbilityFiles(): Array<File> {
@@ -58,33 +85,7 @@ class PsychicManager(
     }
 
     internal fun updateAbilities() {
-        val abilityFiles = getAbilityFiles()
-        if (abilityFiles.isEmpty()) return
 
-        val updateFolder = File(abilitiesFolder, "update")
-        val updated = arrayListOf<File>()
-
-        for (abilityFile in abilityFiles) {
-            val updateFile = File(updateFolder, abilityFile.name)
-
-            if (updateFile.exists()) {
-                updateFile.runCatching {
-                    copyTo(abilityFile, true)
-                }.onSuccess {
-                    updated += it
-                    updateFile.runCatching { delete() }
-                }.onFailure {
-                    it.printStackTrace()
-                    logger.warning("Failed to update ability ${updateFile.nameWithoutExtension}")
-                }
-            }
-        }
-
-        logger.info("Updated abilities(${updated.count()}): ")
-
-        updated.forEach { file ->
-            logger.info("  - ${file.nameWithoutExtension}")
-        }
     }
 
     internal fun loadAbilities() {
@@ -144,6 +145,58 @@ class PsychicManager(
         return byId.values.toList()
     }
 
+    internal fun loadPsychic() {
+        val psychicFile = File(plugin.dataFolder, "config.yml")
+
+        val name = "psychics"
+        val psychicConcept = PsychicConcept()
+
+        kotlin.runCatching {
+            var changed: Boolean
+            val config = YamlConfiguration.loadConfiguration(psychicFile)
+
+            changed = psychicConcept.initialize(name, config)
+
+            var abilitiesConfig = config.getConfigurationSection("abilities")
+
+            if (abilitiesConfig == null) {
+                abilitiesConfig = config.createSection("abilities")
+                changed = true
+            }
+
+            val abilityConcepts = arrayListOf<AbilityConcept>()
+
+            for((abilityName, value) in abilitiesConfig.getValues(false)) {
+                if (value !is ConfigurationSection) continue
+
+                val containerName = requireNotNull(value.getString("ability")) { "ability is undefined"}
+                val containers = findAbilityContainer(containerName)
+
+                if (containers.isEmpty()) error("Not found ability $containerName")
+                if (containers.count() > 1) error("Ambigous Ability ${containers.joinToString { it.description.artifactId }}")
+
+                val abilityContainer = containers.first()
+                val abilityConcept = abilityContainer.conceptClass.getConstructor().newInstance()
+                changed = changed or abilityConcept.initialize(abilityName, abilityContainer, psychicConcept, config)
+                abilityConcepts += abilityConcept
+            }
+
+            psychicConcept.initializeModules(this, abilityConcepts)
+
+            if (changed) {
+                config.runCatching { save(psychicFile) }.onFailure { it.printStackTrace() }
+            }
+        }.onFailure { exception ->
+            exception.printStackTrace()
+
+            logger.warning("Failed to load Psychic")
+        }
+
+        logger.info("Loaded Psychic")
+
+        this.psychicConcept = psychicConcept
+    }
+
     private fun findAbilityContainer(name: String): List<AbilityContainer> {
         if (name.startsWith(".")) {
             val list = arrayListOf<AbilityContainer>()
@@ -159,11 +212,6 @@ class PsychicManager(
         val container = abilityContainersById[name]
 
         return if (container != null) listOf(container) else emptyList()
-    }
-
-    companion object {
-        private const val ABILITIES = "abilities"
-        private const val ABILITY = "ability"
     }
 }
 
