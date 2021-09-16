@@ -103,6 +103,15 @@ open class AbilityConcept {
     internal val internalWand
         get() = _wand
 
+    /**
+     * 능력과 상호작용하는 [ItemStack]
+     */
+    var wand
+        get() = _wand?.clone()
+        protected set(value) {
+            _wand = value?.clone()
+        }
+
     @Config("description")
     private var descriptionRaw: List<String> = ArrayList(0)
 
