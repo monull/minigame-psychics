@@ -1,9 +1,17 @@
 package io.github.monull.psychics
 
+import io.github.monull.psychics.attribute.EsperStatistic
+import io.github.monull.psychics.damage.Damage
+import io.github.monull.psychics.damage.psychicDamage
+import io.github.monull.psychics.damage.psychicHeal
+import io.github.monull.psychics.format.decimalFormat
 import io.github.monull.psychics.util.Times
 import io.github.monun.tap.ref.getValue
 import io.github.monun.tap.ref.weaky
+import org.bukkit.Location
 import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.entity.LivingEntity
+import org.bukkit.event.player.PlayerEvent
 import kotlin.math.max
 
 abstract class Ability<T: AbilityConcept> {
@@ -104,11 +112,98 @@ abstract class Ability<T: AbilityConcept> {
      */
     open fun onDisable() {}
 
+    /**
+     * [LivingEntity]에게 피해를 입힙니다.
+     *
+     * 기본 인수로 [AbilityConcept]에 정의된 변수를 사용합니다.
+     *
+     * @exception IllegalArgumentException [AbilityConcept.damage] 인수가 정의되어 있지 않을 때 발생
+     */
+    fun LivingEntity.psychicDamage(
+        damage: Damage = requireNotNull(concept.damage) { "Damage is not defined" },
+        knockbackLocation: Location? = esper.player.location,
+        knockback: Double = concept.knockback
+    ) {
+        val type = damage.type
+        val amount = esper.getStatistic(damage.stats)
+
+        psychicDamage(this@Ability, type, amount, esper.player, knockbackLocation, knockback)
+    }
+
+    /**
+     * [LivingEntity]를 치유합니다.
+     *
+     * 기본 인수로 [AbilityConcept]에 정의된 변수를 사용합니다.
+     *
+     * @exception IllegalArgumentException [AbilityConcept.healing] 인수가 정의되어 있지 않을 때 발생
+     */
+    fun LivingEntity.psychicHeal(
+        heal: EsperStatistic = requireNotNull(concept.healing) { "Healing is not defined" },
+    ) {
+        val amount = esper.getStatistic(heal)
+
+        psychicHeal(this@Ability, amount, esper.player)
+    }
+
+    /**
+     * [LivingEntity]를 치유합니다.
+     */
+    fun LivingEntity.psychicHeal(
+        amount: Double
+    ) {
+        psychicHeal(this@Ability, amount, esper.player)
+    }
+
+
     fun checkState() {
         psychic.checkState()
     }
 
     fun checkEnabled() {
         psychic.checkEnabled()
+    }
+}
+
+abstract class ActiveAbility<T : AbilityConcept> : Ability<T>() {
+    var targeter: (() -> Any?)? = null
+
+    open fun tryCast(
+        event: PlayerEvent,
+        action: WandAction,
+        castingTime: Long = concept.castingTime,
+        targeter: (() -> Any?)? = this.targeter
+    ) {
+        var target: Any? = null
+
+        if (targeter != null) {
+            target = targeter.invoke()
+        }
+        cast(event, action, castingTime, target)
+    }
+
+    protected fun cast(
+        event: PlayerEvent,
+        action: WandAction,
+        castingTime: Long,
+        target: Any? = null
+    ) {
+        checkState()
+
+        if (castingTime > 0) {
+
+        } else {
+            onCast(event, action, target)
+        }
+    }
+
+    abstract fun onCast(event: PlayerEvent, action: WandAction, target: Any?)
+
+    open fun onChannel(channel: Channel) {}
+
+    open fun onInterrupt(channel: Channel) {}
+
+    enum class WandAction {
+        LEFT_CLICK,
+        RIGHT_CLICK
     }
 }

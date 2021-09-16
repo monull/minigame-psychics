@@ -1,9 +1,13 @@
 package io.github.monull.psychics.plugin
 
 import io.github.monull.psychics.PsychicManager
+import io.github.monull.psychics.Psychics
+import io.github.monull.psychics.attribute.EsperStatistic
+import io.github.monull.psychics.damage.Damage
 import io.github.monun.tap.event.EntityEventManager
 import io.github.monun.tap.fake.FakeEntityServer
 import org.bukkit.Bukkit
+import org.bukkit.configuration.serialization.ConfigurationSerialization
 import org.bukkit.plugin.java.JavaPlugin
 import java.io.File
 
@@ -17,9 +21,15 @@ class PsychicsPlugin : JavaPlugin() {
     lateinit var psychicManager: PsychicManager
         private set
 
+    override fun onLoad() {
+        ConfigurationSerialization.registerClass(Damage::class.java)
+        ConfigurationSerialization.registerClass(EsperStatistic::class.java)
+    }
+
     override fun onEnable() {
         loadModules()
         registerPlayers()
+        Psychics.initialize(this, logger, psychicManager, fakeEntityServer)
     }
 
     private fun loadModules() {

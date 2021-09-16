@@ -1,5 +1,8 @@
 package io.github.monull.psychics
 
+import io.github.monull.psychics.attribute.EsperAttribute
+import io.github.monull.psychics.attribute.EsperStatistic
+import io.github.monull.psychics.damage.attackDamage
 import org.bukkit.attribute.Attribute
 import org.bukkit.attribute.AttributeModifier
 import org.bukkit.configuration.file.YamlConfiguration
@@ -29,6 +32,31 @@ class Esper(val manager: PsychicManager, player: Player) {
         val uniqueId = player.uniqueId
 
         attributeUniqueId = UUID(uniqueId.leastSignificantBits.inv(), uniqueId.mostSignificantBits.inv())
+    }
+
+    /**
+     * 능력치를 가져옵니다.
+     */
+    fun getAttribute(attr: EsperAttribute): Double {
+        return when (attr) {
+            EsperAttribute.ATTACK_DAMAGE -> player.attackDamage
+            EsperAttribute.LEVEL -> player.level.toDouble()
+            EsperAttribute.DEFENSE -> player.getAttribute(Attribute.GENERIC_ARMOR)?.value ?: 0.0
+            EsperAttribute.HEALTH -> player.health
+            else -> 0.0
+        }
+    }
+
+    fun getStatistic(stats: EsperStatistic): Double {
+        var ret = 0.0
+
+        for ((attr, ratio) in stats.stats) {
+            val value = getAttribute(attr)
+
+            ret += value * ratio
+        }
+
+        return ret
     }
 
     private fun setPsychic(concept: PsychicConcept): Psychic {

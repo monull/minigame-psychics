@@ -2,6 +2,7 @@ package io.github.monull.psychics
 
 import com.google.common.collect.ImmutableList
 import io.github.monull.psychics.plugin.PsychicsPlugin
+import io.github.monull.psychics.util.Times
 import io.github.monun.tap.event.RegisteredEntityListener
 import io.github.monun.tap.fake.FakeEntity
 import io.github.monun.tap.fake.FakeProjectileManager
@@ -11,12 +12,17 @@ import io.github.monun.tap.task.Ticker
 import io.github.monun.tap.task.TickerTask
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
+import org.bukkit.ChatColor
 import org.bukkit.Location
 import org.bukkit.block.data.BlockData
+import org.bukkit.boss.BarColor
+import org.bukkit.boss.BarStyle
+import org.bukkit.boss.BossBar
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Entity
 import org.bukkit.event.Listener
+import org.bukkit.event.player.PlayerEvent
 import org.bukkit.inventory.ItemStack
 import java.util.*
 import kotlin.collections.ArrayList
@@ -35,6 +41,14 @@ class Psychic internal constructor(
         private set
 
     val abilities: List<Ability<*>>
+
+    /**
+     * 현재 시전중인 채널입니다.
+     *
+     * @see Channel
+     */
+    var channeling: Channel? = null
+        private set
 
     var isEnabled = false
         set(value) {
@@ -58,6 +72,8 @@ class Psychic internal constructor(
         private set
 
     private lateinit var ticker: Ticker
+
+    private lateinit var castingBar: BossBar
 
     private lateinit var projectiles: FakeProjectileManager
 
@@ -87,6 +103,11 @@ class Psychic internal constructor(
         require(!this::esper.isInitialized) { "Cannot redefine epser" }
 
         val player = esper.player
+
+        castingBar = Bukkit.createBossBar(null, BarColor.WHITE, BarStyle.SOLID).apply {
+            addPlayer(player)
+            isVisible = false
+        }
 
         val delegate by weaky(esper)
         this.esper = delegate
@@ -135,6 +156,20 @@ class Psychic internal constructor(
         for (ability in abilities) {
             ability.runCatching { onDisable() }.onFailure(Throwable::printStackTrace)
         }
+    }
+
+    /**
+     * [AbilityConcept.wand] 속성이 같은 [Ability]를 반환합니다.
+     */
+    fun getAbilityByWand(item: ItemStack): Ability<*>? {
+        for (ability in abilities) {
+            val wand = ability.concept.internalWand
+
+            if (wand != null && wand.isSimilar(item))
+                return ability
+        }
+
+        return null
     }
 
     /**
@@ -305,6 +340,56 @@ class Psychic internal constructor(
         require(isEnabled) { "Disabled Psychic@${System.identityHashCode(this).toString(16)}" }
     }
 
+    internal fun startChannel(
+        ability: ActiveAbility<*>,
+        event: PlayerEvent,
+        wandAction: ActiveAbility.WandAction,
+        castingTime: Long,
+        target: Any?
+    ) {
+        interruptChannel()
+
+        channeling = Channel(ability, event, wandAction, castingTime, target)
+        castingBar.apply {
+            val abilityConcept = ability.concept
+            setTitle("${ChatColor.BOLD}${concept.displayName}")
+            color = abilityConcept.castingBarColor ?: BarColor.YELLOW
+            progress = 0.0
+            isVisible = true
+        }
+    }
+
+    /**
+     * 현재 실행중인 [Channel]을 중지시킵니다.
+     */
+    fun interruptChannel() {
+        channeling?.let { channel ->
+            channel.interrupt()
+            channeling = null
+        }
+    }
+
+    internal fun update() {
+        ticker.run()
+        projectiles.update()
+
+        channeling?.let { channel ->
+            val remainingTime = channel.remainingTime
+            // 시간을 -150 하여 서버 <-> 클라이언트 사이의 딜레이 최소화
+            castingBar.progress =
+                (1.0 - max(0, remainingTime - 150).toDouble() / channel.ability.concept.castingTime.toDouble())
+
+            if (remainingTime > 0L) {
+                channel.channel()
+            } else {
+                castingBar.setTitle(null)
+                castingBar.isVisible = false
+                channeling = null
+                channel.cast()
+            }
+        }
+    }
+
     companion object {
         internal const val NAME = "name"
         private const val MANA = "mana"
@@ -342,5 +427,35 @@ class Psychic internal constructor(
         }
 
         isEnabled = config.getBoolean(ENABLED)
+    }
+}
+/**
+ * 시전중인 스킬정보를 담고있는 클래스입니다.
+ */
+class Channel internal constructor(
+    val ability: ActiveAbility<*>,
+    val event: PlayerEvent,
+    val action: ActiveAbility.WandAction,
+    castingTime: Long,
+    val target: Any? = null
+) {
+    private val channelTime = Times.current + castingTime
+
+    /**
+     * 시전까지 남은시간
+     */
+    val remainingTime
+        get() = max(0, channelTime - Times.current)
+
+    internal fun channel() {
+        ability.runCatching { onChannel(this@Channel) }.onFailure(Throwable::printStackTrace)
+    }
+
+    internal fun cast() {
+        ability.runCatching { onCast(event, action, target) }.onFailure(Throwable::printStackTrace)
+    }
+
+    internal fun interrupt() {
+        ability.runCatching { onInterrupt(this@Channel) }.onFailure(Throwable::printStackTrace)
     }
 }

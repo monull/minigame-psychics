@@ -11,7 +11,7 @@ class SchedulerTask(
         for (esper in psychicManager.espers) {
             esper.psychic?.run {
                 if (isEnabled) {
-
+                    update()
                 }
             }
         }
