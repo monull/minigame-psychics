@@ -85,12 +85,8 @@ class AbilityDirt : ActiveAbility<AbilityConceptDirt>() {
                 val length = v.normalizeAndLength()
                 if (length == 0.0) return
 
-                val filter = Predicate<Entity> {
-                    when (it) {
-                        esper.player -> false
-                        else -> true
-                    }
-                }
+                val filter = TargetFilter(esper.player)
+
                 world.rayTrace(
                     from,
                     v,
@@ -103,6 +99,8 @@ class AbilityDirt : ActiveAbility<AbilityConceptDirt>() {
                 )?.let { rayTraceResult ->
 
                     remove()
+
+                    if(rayTraceResult.hitEntity == null) return
 
                     (rayTraceResult.hitEntity as LivingEntity).psychicDamage()
                 }

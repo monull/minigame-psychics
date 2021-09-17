@@ -3,7 +3,9 @@ package io.github.monull.psychics.plugin
 import io.github.monull.psychics.PsychicManager
 import io.github.monull.psychics.Psychics
 import io.github.monull.psychics.attribute.EsperStatistic
+import io.github.monull.psychics.command.KommandPsychic
 import io.github.monull.psychics.damage.Damage
+import io.github.monun.kommand.kommand
 import io.github.monun.tap.event.EntityEventManager
 import io.github.monun.tap.fake.FakeEntityServer
 import org.bukkit.Bukkit
@@ -28,8 +30,15 @@ class PsychicsPlugin : JavaPlugin() {
 
     override fun onEnable() {
         loadModules()
+        setupCommands()
         registerPlayers()
         Psychics.initialize(this, logger, psychicManager, fakeEntityServer)
+    }
+
+    private fun setupCommands() {
+        kommand {
+            KommandPsychic.register(this@PsychicsPlugin, psychicManager, this)
+        }
     }
 
     private fun loadModules() {

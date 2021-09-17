@@ -1,14 +1,21 @@
 package io.github.monull.psychics
 
+import io.github.monull.psychics.tooltip.TooltipBuilder
+import io.github.monull.psychics.tooltip.template
 import io.github.monun.tap.config.Config
 import io.github.monun.tap.config.ConfigSupport
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.Component.text
+import net.kyori.adventure.text.format.NamedTextColor
+import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.configuration.ConfigurationSection
 
 class PsychicConcept internal constructor() {
+    companion object {
+        internal const val DISPLAY_NAME = "display-name"
+    }
 
     lateinit var manager: PsychicManager
         private set
@@ -57,6 +64,19 @@ class PsychicConcept internal constructor() {
             abilityConcept.runCatching {
                 onInitialize()
             }
+        }
+    }
+
+    internal fun renderTooltip(): TooltipBuilder {
+        return TooltipBuilder().apply {
+            title(
+                text().content(displayName).decoration(TextDecoration.ITALIC, false).decorate(TextDecoration.BOLD)
+                    .color(NamedTextColor.GOLD).build()
+            )
+
+            body(description)
+
+            template(DISPLAY_NAME, displayName)
         }
     }
 

@@ -87,7 +87,33 @@ class PsychicManager(
     }
 
     internal fun updateAbilities() {
+        val abilityFiles = getAbilityFiles()
+        if (abilityFiles.isEmpty()) return
 
+        val updateFolder = File(abilitiesFolder, "update")
+        val updated = arrayListOf<File>()
+
+        for (abilityFile in abilityFiles) {
+            val updateFile = File(updateFolder, abilityFile.name)
+
+            if (updateFile.exists()) {
+                updateFile.runCatching {
+                    copyTo(abilityFile, true)
+                }.onSuccess {
+                    updated += it
+                    updateFile.runCatching { delete() }
+                }.onFailure {
+                    it.printStackTrace()
+                    logger.warning("Failed to update ability ${updateFile.nameWithoutExtension}")
+                }
+            }
+        }
+
+        logger.info("Updated abilities(${updated.count()}):")
+
+        updated.forEach { file ->
+            logger.info("  - ${file.nameWithoutExtension}")
+        }
     }
 
     internal fun loadAbilities() {

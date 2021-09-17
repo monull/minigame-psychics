@@ -22,6 +22,7 @@ class TargetFilter(
                 val gameMode = t.gameMode
                 if (gameMode == GameMode.SPECTATOR || gameMode == GameMode.CREATIVE) return false
             }
+
             val team = team ?: return hostile
             val name = if (t is Player) t.name else t.uniqueId.toString()
             val result = team.hasEntry(name)
