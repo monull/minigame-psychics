@@ -42,7 +42,7 @@ class AbilityConceptDirt : AbilityConcept() {
         description = listOf(
             text("스킬 사용시 흙 발사")
         )
-        wand = ItemStack(Material.GOLD_INGOT)
+        wand = ItemStack(Material.WOODEN_SHOVEL)
     }
 }
 
