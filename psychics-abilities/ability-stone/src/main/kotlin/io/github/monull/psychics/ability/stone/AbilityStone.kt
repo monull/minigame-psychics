@@ -2,6 +2,7 @@ package io.github.monull.psychics.ability.stone
 
 import io.github.monull.psychics.AbilityConcept
 import io.github.monull.psychics.ActiveAbility
+import io.github.monull.psychics.util.TargetFilter
 import io.github.monun.tap.config.Config
 import io.github.monun.tap.task.TickerTask
 import net.kyori.adventure.text.Component.text
@@ -11,10 +12,18 @@ import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.event.player.PlayerEvent
 import org.bukkit.inventory.ItemStack
+import org.bukkit.util.BoundingBox
+import org.bukkit.util.Vector
 
 class AbilityConceptStone : AbilityConcept() {
     @Config
     var stoneMaxDistance = 30.0
+
+    @Config
+    var stoneRange = 1.0
+
+    @Config
+    var stonePower = 0.5
 
     init {
         cooldownTime = 40000L
@@ -35,6 +44,13 @@ class AbilityStone : ActiveAbility<AbilityConceptStone>() {
         val maxDistance = concept.stoneMaxDistance
 
         esper.player.world.rayTraceBlocks(start, direction, maxDistance, FluidCollisionMode.NEVER, true)?.let { result ->
+            val filter = TargetFilter(esper.player)
+            val boundingBox = BoundingBox.of(result.hitPosition.toLocation(esper.player.world), concept.stoneRange, concept.stoneRange, concept.stoneRange)
+            val hitEntities = esper.player.world.getNearbyEntities(boundingBox, filter)
+            hitEntities.forEach { hitEntity ->
+                hitEntity.teleport(hitEntity.location.apply { y += 3 })
+                hitEntity.velocity = Vector(0.0, concept.stonePower, 0.0)
+            }
             val blockLoc = result.hitBlock?.location!!.apply { y += 1 }
             val scheduler = StoneScheduler(blockLoc)
             scheduler.task = psychic.runTaskTimer(scheduler, 0L, 1L)
