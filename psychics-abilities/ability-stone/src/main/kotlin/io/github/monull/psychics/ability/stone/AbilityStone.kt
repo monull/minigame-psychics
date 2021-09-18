@@ -17,7 +17,7 @@ class AbilityConceptStone : AbilityConcept() {
     var stoneMaxDistance = 30.0
 
     init {
-        cooldownTime = 60
+        cooldownTime = 40000L
         durationTime = 60
         description = listOf(
             text("돌 검 사용시 돌 탑 소환"),
@@ -128,7 +128,7 @@ class AbilityStone : ActiveAbility<AbilityConceptStone>() {
                             }
                             getRelative(-1.0, 0.0, 0.0).run {
                                 type = Material.COBBLESTONE
-                                getRelative(0.0, -1.0, 0.0).type = Material.TUFF
+                                getRelative(0.0, 1.0, 0.0).type = Material.TUFF
                             }
                         }
                         getRelative(0.0, 1.0, 0.0).run {
@@ -241,7 +241,7 @@ class AbilityStone : ActiveAbility<AbilityConceptStone>() {
                             }
                             getRelative(-1.0, 0.0, 0.0).run {
                                 type = Material.COBBLESTONE
-                                getRelative(0.0, -1.0, 0.0).type = Material.TUFF
+                                getRelative(0.0, 1.0, 0.0).type = Material.TUFF
                             }
                         }
                         getRelative(0.0, 1.0, 0.0).run {

@@ -37,7 +37,7 @@ class AbilityConceptDirt : AbilityConcept() {
     var acceleration = 0.01
 
     init {
-        cooldownTime = 20
+        cooldownTime = 250
         damage = Damage.of(DamageType.RANGED, EsperAttribute.ATTACK_DAMAGE to 0.5)
         knockback = 1.0
         description = listOf(
@@ -107,6 +107,10 @@ class AbilityDirt : ActiveAbility<AbilityConceptDirt>() {
                     (rayTraceResult.hitEntity as LivingEntity).psychicDamage()
                 }
             }
+        }
+
+        override fun onPostUpdate() {
+            velocity = velocity.multiply(1 + concept.acceleration)
         }
 
         override fun onRemove() {

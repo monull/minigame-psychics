@@ -23,6 +23,13 @@ abstract class Ability<T: AbilityConcept> {
         get() {
             return max(0L, field - Times.current)
         }
+    set(value) {
+        checkState()
+
+        val times = max(0L, value)
+        field = Times.current + times
+        updateCooldown((value / 50L).toInt())
+    }
 
     internal fun updateCooldown(ticks: Int = (cooldownTime / 50L).toInt()) {
         val wand = concept.wand
