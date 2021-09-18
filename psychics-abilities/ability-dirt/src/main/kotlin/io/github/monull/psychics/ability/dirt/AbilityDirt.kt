@@ -37,6 +37,7 @@ class AbilityConceptDirt : AbilityConcept() {
     var acceleration = 0.01
 
     init {
+        cooldownTime = 20
         damage = Damage.of(DamageType.RANGED, EsperAttribute.ATTACK_DAMAGE to 0.5)
         knockback = 1.0
         description = listOf(
@@ -49,6 +50,7 @@ class AbilityConceptDirt : AbilityConcept() {
 class AbilityDirt : ActiveAbility<AbilityConceptDirt>() {
 
     override fun onCast(event: PlayerEvent, action: WandAction, target: Any?) {
+        cooldownTime = concept.cooldownTime
         val projectile = DirtProjectile()
         projectile.dirt = psychic.spawnFakeEntity(esper.player.eyeLocation, ArmorStand::class.java).apply {
             updateMetadata<ArmorStand> {

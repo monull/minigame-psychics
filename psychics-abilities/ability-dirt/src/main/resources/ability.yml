@@ -1,4 +1,4 @@
-name: Dirt
+name: dirt
 main: io.github.monull.psychics.ability.dirt.AbilityDirt
 version: 1.0
 group: io.github.monull

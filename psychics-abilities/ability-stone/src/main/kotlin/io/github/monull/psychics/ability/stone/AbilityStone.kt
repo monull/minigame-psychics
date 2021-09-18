@@ -17,7 +17,8 @@ class AbilityConceptStone : AbilityConcept() {
     var stoneMaxDistance = 30.0
 
     init {
-        durationTime = 3
+        cooldownTime = 60
+        durationTime = 60
         description = listOf(
             text("돌 검 사용시 돌 탑 소환"),
             text("돌 탑 근처에 있던 사람은 가벼운 넉백으로 공중으로 날아감")
@@ -28,6 +29,7 @@ class AbilityConceptStone : AbilityConcept() {
 class AbilityStone : ActiveAbility<AbilityConceptStone>() {
 
     override fun onCast(event: PlayerEvent, action: WandAction, target: Any?) {
+        cooldownTime = concept.cooldownTime
         val start = esper.player.eyeLocation
         val direction = start.direction
         val maxDistance = concept.stoneMaxDistance
@@ -361,7 +363,7 @@ class AbilityStone : ActiveAbility<AbilityConceptStone>() {
         val y = location.y.toInt()
         val z = location.z.toInt()
         for (x in (x - 1)..(x + 1)) {
-            for ( y in y until y + height - 1) {
+            for ( y in y until y + height) {
                 for (z in (z - 1)..(z + 1)) {
                     val loc = Location(world, x.toDouble(), y.toDouble(), z.toDouble())
                     loc.block.type = Material.AIR
