@@ -25,7 +25,8 @@ abstract class Ability<T: AbilityConcept> {
         }
 
     internal fun updateCooldown(ticks: Int = (cooldownTime / 50L).toInt()) {
-
+        val wand = concept.wand
+        if (wand != null) esper.player.setCooldown(wand.type, ticks)
     }
 
     var durationTime: Long = 0L
