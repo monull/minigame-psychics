@@ -1,0 +1,5 @@
+name: diamond
+main: io.github.monull.psychic.ability.diamond.AbilityDiamond
+version: 1.0
+group: io.github.monull
+author: duxoalstm

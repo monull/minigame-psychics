@@ -1,0 +1,5 @@
+name: gold
+main: io.github.monull.psychic.ability.gold.AbilityGold
+version: 1.0
+group: io.github.monull
+author: duxoalstm

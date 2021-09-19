@@ -165,7 +165,7 @@ class Psychic internal constructor(
         for (ability in abilities) {
             val wand = ability.concept.internalWand
 
-            if (wand != null && wand.isSimilar(item))
+            if (wand != null && wand.type == item.type)
                 return ability
         }
 

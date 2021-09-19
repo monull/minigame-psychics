@@ -63,6 +63,7 @@ private fun Psychic.castByWand(event: PlayerEvent, action: ActiveAbility.WandAct
         val ability = psychic.getAbilityByWand(item)
 
         if (ability is ActiveAbility) {
+            if (event.player.hasCooldown(item.type)) return
             ability.tryCast(event, action)
         }
     }
