@@ -30,6 +30,7 @@ class AbilityConceptDiamond : AbilityConcept() {
     init {
         wand = ItemStack(Material.DIAMOND_SWORD)
         damage = Damage.of(DamageType.RANGED, EsperAttribute.ATTACK_DAMAGE to 3.5)
+        knockback = 1.0
         description = listOf(
             text("허공에 다이아검을 휘두를 시 멀리 있는 상대 공격")
         )
@@ -38,7 +39,7 @@ class AbilityConceptDiamond : AbilityConcept() {
     override fun onRenderTooltip(tooltip: TooltipBuilder, stats: (EsperStatistic) -> Double) {
         tooltip.header(
             text().content("최대 사거리 ").color(NamedTextColor.DARK_RED).decoration(TextDecoration.ITALIC, false)
-                .append(text().content(diamondDistance.toString())).build()
+                .append(text().content(diamondDistance.toInt().toString())).build()
         )
     }
 }
@@ -77,7 +78,7 @@ class AbilityDiamond : Ability<AbilityConceptDiamond>(), Runnable, Listener {
                             val lore = lore() ?: ArrayList<Component>()
                             lore.add(0, text().content("허공에 휘두를 때: ").decoration(TextDecoration.ITALIC, false)
                                 .color(NamedTextColor.GRAY).build())
-                            lore.add(1, text().content("${concept.diamondDistance} 공격 거리").decoration(TextDecoration.ITALIC, false)
+                            lore.add(1, text().content("${concept.diamondDistance.toInt()} 공격 거리").decoration(TextDecoration.ITALIC, false)
                                 .color(NamedTextColor.DARK_GREEN).build())
                             lore(lore)
                         }
