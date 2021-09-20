@@ -1,5 +1,5 @@
 name: sample
-main: io.github.monull.ability.sample.Sample
+main: io.github.monull.psychic.ability.sample.Sample
 version: 1.0
 group: io.github.monull
 author: xenon2452
